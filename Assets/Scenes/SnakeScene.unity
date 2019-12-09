@@ -226,20 +226,7 @@ MonoBehaviour:
     resetOnDone: 0
     onDemandDecision: 1
     numberOfActionsBetweenDecisions: 1
-  Target: {fileID: 0}
---- !u!114 &562170679
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 562170674}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 58a1030e305212a4f847bd42df2eda43, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  dir: {x: 1, y: 0}
+  dir: {x: 0, y: 0}
   tail: []
   tailPrefab: {fileID: 5205608825218712500, guid: 98394b18612fbd94697575c18fad6e5a,
     type: 3}
@@ -286,7 +273,7 @@ MonoBehaviour:
     vectorActionSpaceType: 0
   m_Model: {fileID: 0}
   m_InferenceDevice: 0
-  m_UseHeuristic: 0
+  m_UseHeuristic: 1
   m_BehaviorName: SnakeBehavior
 --- !u!1 &1240637322
 GameObject:
