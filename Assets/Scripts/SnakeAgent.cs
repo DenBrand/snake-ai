@@ -1,39 +1,84 @@
 ﻿using UnityEngine;
 using MLAgents;
 using System.Collections.Generic;
-using System.Collections;
 using System.Linq;
-using UnityEngine.SceneManagement;
+using MLAgents.Sensor;
 
 public class SnakeAgent : Agent {
     
     public Vector2 dir = Vector2.right;
     public List<Transform> tail = new List<Transform>();
+    public GameObject agentPrefab;
     public GameObject tailPrefab;
     public GameObject foodPrefab;
-    public Transform borderTop;
-    public Transform borderBottom;
-    public Transform borderLeft;
-    public Transform borderRight;
-    bool ate = false; // ate something
-    bool lost = false; // hit border or tail
-    private GameObject Target;
+    private Transform borderTop;
+    private Transform borderBottom;
+    private Transform borderLeft;
+    private Transform borderRight;
+    bool ate = false;
+    bool lost = false;
+    private Vector2 action = new Vector2(0f, 0f);
+    private Vector3 startPosition;
+    private Quaternion startRotation;
 
     // Start is called before the first frame update
     void Start() {
-        SpawnFood();
+        startPosition = this.transform.position;
+        startRotation = this.transform.rotation;
+
+        borderLeft = GameObject.FindGameObjectWithTag("BorderLeft").transform;
+        borderRight = GameObject.FindGameObjectWithTag("BorderRight").transform;
+        borderTop = GameObject.FindGameObjectWithTag("BorderTop").transform;
+        borderBottom = GameObject.FindGameObjectWithTag("BorderBottom").transform;
+
+        this.GetComponent<CameraSensorComponent>().camera = FindObjectOfType<Camera>();
+
         // Move the Snake every 200ms
-        InvokeRepeating("Move", 0.20f, 0.20f);
+        InvokeRepeating("Move", 0.15f, 0.15f);
+        SpawnFood();
     }
 
-    public override void AgentReset() {
-        // ???: Need to be implemented?
+    void FixedUpdate() {
+        if(Input.GetKey(KeyCode.UpArrow)) {
+            action.y = -1f;
+            action.x = 0f;
+        } else if(Input.GetKey(KeyCode.LeftArrow)) {
+            action.x = -1f;
+            action.y = 0f;
+        } else if(Input.GetKey(KeyCode.DownArrow)) {
+            action.y = 1f;
+            action.x = 0f;
+        } else if(Input.GetKey(KeyCode.RightArrow)) {
+            action.x = 1f;
+            action.y = 0f;
+        }
+    }
+
+    public void RespawnNewAgent() {
+        Instantiate(agentPrefab, startPosition, startRotation);
+    }
+
+    public override void AgentOnDone() {
+        tail.Clear();
+
+        var foods = GameObject.FindGameObjectsWithTag("Food");
+        foreach(var food in foods) {
+            Destroy(food);
+        }
+
+        var tailParts = GameObject.FindGameObjectsWithTag("Tail");
+        foreach(var tailPart in tailParts) {
+            Destroy(tailPart);
+        }
+
+        RespawnNewAgent();
+
+        Destroy(gameObject);
     }
 
     public override void AgentAction(float[] vectorAction, string textAction) {
-        // ???: Wie sieht vectorAction in unserem diskreten Beispiel hier aus?
-        // Move in a new Direction?
 
+        // Move in a new Direction?
         if (vectorAction[1] == 1) dir = Vector2.right;
         else if (vectorAction[0] == 1) dir = Vector2.down;
         else if (vectorAction[1] == -1) dir = Vector2.left;
@@ -41,6 +86,9 @@ public class SnakeAgent : Agent {
 
         // Move head into new direction (now there is a gap)
         transform.Translate(dir);
+
+        action.x = 0f;
+        action.y = 0f;
     }
 
     void Move() {
@@ -48,11 +96,13 @@ public class SnakeAgent : Agent {
         Vector2 gapPosition = transform.position;
 
         if (ate) {
+            AddReward(1f);
+
             // Load Prefab into the world
             GameObject newTailElement = (GameObject)Instantiate( tailPrefab,
                                                     gapPosition,
                                                     Quaternion.identity);
-            newTailElement.tag = "tail";
+            newTailElement.tag = "Tail";
 
             // Keep track of it in our tail list
             tail.Insert(0, newTailElement.transform);
@@ -73,8 +123,6 @@ public class SnakeAgent : Agent {
         }
 
         RequestDecision();
-        action.x = 0f;
-        action.y = 0f;
     }
 
     void SpawnFood() {
@@ -94,12 +142,10 @@ public class SnakeAgent : Agent {
         }
 
         // Instantiate the food at (x, y)
-        GameObject newFood = (  GameObject)Instantiate(foodPrefab, 
-                                new Vector2(x, y), 
-                                Quaternion.identity); // default rotation
+        GameObject newFood = (GameObject)Instantiate(   foodPrefab, 
+                                                        new Vector2(x, y), 
+                                                        Quaternion.identity); // default rotation
         newFood.tag = "Food";
-
-        Target = newFood;
     }
 
     void OnTriggerEnter2D(Collider2D collider) {
@@ -120,16 +166,17 @@ public class SnakeAgent : Agent {
     }
 
     void Lost() {
-        // ???: Maybe show game over screen for ~1.5 seconds?
-
-        // Reload Scene
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        SetReward(-2f);
+        Done();
     }
 
+    // ???: Why is this function called, even if "Use Heuristic" is unchecked?!
     public override float[] Heuristic() {
+
         var act = new float[2];
-        act[0] = action.x;
-        act[1] = action.y;
+        act[0] = action.y;
+        act[1] = action.x;
+
         return act;
     }
 
