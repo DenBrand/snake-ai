@@ -781,11 +781,16 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 931235040276315874, guid: ab553e42f045dd749ba86cc576e87f82,
         type: 3}
+    - target: {fileID: 153891019487269664, guid: ab553e42f045dd749ba86cc576e87f82,
+        type: 3}
+      propertyPath: agentParameters.resetOnDone
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 931235040276315881, guid: ab553e42f045dd749ba86cc576e87f82,
         type: 3}
       propertyPath: camera
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 519420031}
     - target: {fileID: 931235040276315882, guid: ab553e42f045dd749ba86cc576e87f82,
         type: 3}
       propertyPath: m_UseHeuristic

@@ -8,6 +8,7 @@ public class SnakeAgent : Agent {
     
     public Vector2 dir = Vector2.right;
     public List<Transform> tail = new List<Transform>();
+    public List<Transform> foods = new List<Transform>();
     public GameObject agentPrefab;
     public GameObject tailPrefab;
     public GameObject foodPrefab;
@@ -30,8 +31,6 @@ public class SnakeAgent : Agent {
         borderRight = GameObject.FindGameObjectWithTag("BorderRight").transform;
         borderTop = GameObject.FindGameObjectWithTag("BorderTop").transform;
         borderBottom = GameObject.FindGameObjectWithTag("BorderBottom").transform;
-
-        this.GetComponent<CameraSensorComponent>().camera = FindObjectOfType<Camera>();
 
         // Move the Snake every 200ms
         InvokeRepeating("Move", 0.15f, 0.15f);
@@ -58,7 +57,10 @@ public class SnakeAgent : Agent {
         Instantiate(agentPrefab, startPosition, startRotation);
     }
 
-    public override void AgentOnDone() {
+    public override void AgentReset() {
+
+        Debug.Log("AgentReset()");
+
         tail.Clear();
 
         var foods = GameObject.FindGameObjectsWithTag("Food");
@@ -71,9 +73,10 @@ public class SnakeAgent : Agent {
             Destroy(tailPart);
         }
 
-        RespawnNewAgent();
+        SpawnFood();
 
-        Destroy(gameObject);
+        gameObject.transform.position = startPosition;
+        lost = false;
     }
 
     public override void AgentAction(float[] vectorAction, string textAction) {
@@ -170,7 +173,6 @@ public class SnakeAgent : Agent {
         Done();
     }
 
-    // ???: Why is this function called, even if "Use Heuristic" is unchecked?!
     public override float[] Heuristic() {
 
         var act = new float[2];
