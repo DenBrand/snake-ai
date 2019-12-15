@@ -18,7 +18,7 @@ public class SnakeAgent : Agent {
     private Transform borderRight;
     bool ate = false;
     bool lost = false;
-    private Vector2 action = new Vector2(0f, 0f);
+    private Vector2 action = new Vector2(1f, 1f);
     private Vector3 startPosition;
     private Quaternion startRotation;
 
@@ -39,17 +39,17 @@ public class SnakeAgent : Agent {
 
     void FixedUpdate() {
         if(Input.GetKey(KeyCode.UpArrow)) {
-            action.y = -1f;
-            action.x = 0f;
-        } else if(Input.GetKey(KeyCode.LeftArrow)) {
-            action.x = -1f;
             action.y = 0f;
-        } else if(Input.GetKey(KeyCode.DownArrow)) {
-            action.y = 1f;
-            action.x = 0f;
-        } else if(Input.GetKey(KeyCode.RightArrow)) {
             action.x = 1f;
-            action.y = 0f;
+        } else if(Input.GetKey(KeyCode.LeftArrow)) {
+            action.x = 0f;
+            action.y = 1f;
+        } else if(Input.GetKey(KeyCode.DownArrow)) {
+            action.y = 2f;
+            action.x = 1f;
+        } else if(Input.GetKey(KeyCode.RightArrow)) {
+            action.x = 2f;
+            action.y = 1f;
         }
     }
 
@@ -58,9 +58,6 @@ public class SnakeAgent : Agent {
     }
 
     public override void AgentReset() {
-
-        Debug.Log("AgentReset()");
-
         tail.Clear();
 
         var foods = GameObject.FindGameObjectsWithTag("Food");
@@ -81,17 +78,20 @@ public class SnakeAgent : Agent {
 
     public override void AgentAction(float[] vectorAction, string textAction) {
 
+        Debug.Log("0: " + vectorAction[0]);
+        Debug.Log("1: " + vectorAction[1]);
+
         // Move in a new Direction?
-        if (vectorAction[1] == 1) dir = Vector2.right;
-        else if (vectorAction[0] == 1) dir = Vector2.down;
-        else if (vectorAction[1] == -1) dir = Vector2.left;
-        else if (vectorAction[0] == -1) dir = Vector2.up;
+        if (vectorAction[1] == 2) dir = Vector2.right;
+        else if (vectorAction[0] == 2) dir = Vector2.down;
+        else if (vectorAction[1] == 0) dir = Vector2.left;
+        else if (vectorAction[0] == 0) dir = Vector2.up;
 
         // Move head into new direction (now there is a gap)
         transform.Translate(dir);
 
-        action.x = 0f;
-        action.y = 0f;
+        action.x = 1f;
+        action.y = 1f;
     }
 
     void Move() {
@@ -139,6 +139,10 @@ public class SnakeAgent : Agent {
             x = (int)Random.Range(borderLeft.position.x, borderRight.position.x);
             // y postition in top & bottom border
             y = (int)Random.Range(borderBottom.position.y, borderTop.position.y);
+
+            // DEBUG
+            x = 13;
+            y= -7;
 
             // Check if position is valid
             if(true) validPosition = true; // TODO: Define a condition. In snake itself or other food would be invalid.
