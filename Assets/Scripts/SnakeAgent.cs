@@ -21,6 +21,8 @@ public class SnakeAgent : Agent {
     private Vector2 action = new Vector2(1f, 1f);
     private Vector3 startPosition;
     private Quaternion startRotation;
+    int width;
+    int height;
 
     // Start is called before the first frame update
     void Start() {
@@ -31,6 +33,8 @@ public class SnakeAgent : Agent {
         borderRight = GameObject.FindGameObjectWithTag("BorderRight").transform;
         borderTop = GameObject.FindGameObjectWithTag("BorderTop").transform;
         borderBottom = GameObject.FindGameObjectWithTag("BorderBottom").transform;
+        width = (int)Mathf.Abs(borderRight.position.x - borderLeft.position.x) - 1;
+        height = (int)Mathf.Abs(borderTop.position.y - borderBottom.position.y) - 1;
 
         // Move the Snake every 200ms
         InvokeRepeating("Move", 0.15f, 0.15f);
@@ -96,7 +100,7 @@ public class SnakeAgent : Agent {
         Vector2 gapPosition = transform.position;
 
         if (ate) {
-            AddReward(5f);
+            AddReward(10f);
 
             // Load Prefab into the world
             GameObject newTailElement = (GameObject)Instantiate( tailPrefab,
@@ -150,24 +154,36 @@ public class SnakeAgent : Agent {
 
     public override void CollectObservations() {
 
-        int width = (int)Mathf.Abs(borderRight.position.x - borderLeft.position.x) - 1;
-        int height = (int)Mathf.Abs(borderTop.position.y - borderBottom.position.y) - 1;
-
         int numObs = width * height;
 
-        int[] Obs = new int[numObs];
+        int[] obs = new int[numObs];
 
-        for(int i = 0; i < numObs; i++) Obs[i] = 0;
+        for(int i = 0; i < numObs; i++) obs[i] = 0;
+
+        int idx = (int)(transform.position.y - borderBottom.position.y - 1) * width + (int)(transform.position.x - borderLeft.position.x) - 1;
+        // Debug.Log("player idx: " + idx);
+        obs[idx] = 1;
 
         foreach(var tailElement in tail) {
 
-            int idx = ((int)tailElement.position.y + height/2 - 1) * width + (int)tailElement.position.x + width/2;
-            Obs[idx] = 1;
+            idx = (int)(tailElement.position.y - borderBottom.position.y - 1) * width + (int)(tailElement.position.x - borderLeft.position.x) - 1;
+            // Debug.Log("tail idx: " + idx);
+            obs[idx] = 2;
 
         }
 
+        foreach(var foodElement in foods) {
+
+            idx = (int)(foodElement.position.y - borderBottom.position.y - 1) * width + (int)(foodElement.position.x - borderLeft.position.x) - 1;
+            // Debug.Log("food idx: " + idx);
+            obs[idx] = 3;
+
+        }
+
+        foreach(int ob in obs) AddVectorObs(ob);
+
         // Debug.Log(string.Join(" ", new List<int>(Obs).ConvertAll(i => i.ToString()).ToArray()));
-        
+
     }
 
     void OnTriggerEnter2D(Collider2D collider) {
@@ -188,7 +204,7 @@ public class SnakeAgent : Agent {
     }
 
     void Lost() {
-        AddReward(-2f);
+        AddReward(-1f);
         Done();
     }
 
