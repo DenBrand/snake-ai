@@ -151,11 +151,13 @@ MonoBehaviour:
     numberOfActionsBetweenDecisions: 1
   dir: {x: 0, y: 0}
   tail: []
+  foods: []
   agentPrefab: {fileID: 931235040276315874}
   tailPrefab: {fileID: 5205608825218712500, guid: 98394b18612fbd94697575c18fad6e5a,
     type: 3}
   foodPrefab: {fileID: 5821761141009365490, guid: 2e49a4baf05090d4d972b75f04f9db02,
     type: 3}
+  maxFood: 10
 --- !u!114 &931235040276315881
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -193,5 +195,5 @@ MonoBehaviour:
     vectorActionSpaceType: 0
   m_Model: {fileID: 0}
   m_InferenceDevice: 0
-  m_UseHeuristic: 0
+  m_BehaviorType: 0
   m_BehaviorName: SnakeBehavior

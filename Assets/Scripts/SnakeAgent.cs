@@ -76,10 +76,7 @@ public class SnakeAgent : Agent {
         lost = false;
     }
 
-    public override void AgentAction(float[] vectorAction, string textAction) {
-
-        Debug.Log("0: " + vectorAction[0]);
-        Debug.Log("1: " + vectorAction[1]);
+    public override void AgentAction(float[] vectorAction) {
 
         // Move in a new Direction?
         if (vectorAction[1] == 2) dir = Vector2.right;
@@ -99,7 +96,7 @@ public class SnakeAgent : Agent {
         Vector2 gapPosition = transform.position;
 
         if (ate) {
-            AddReward(1f);
+            AddReward(5f);
 
             // Load Prefab into the world
             GameObject newTailElement = (GameObject)Instantiate( tailPrefab,
@@ -140,10 +137,6 @@ public class SnakeAgent : Agent {
             // y postition in top & bottom border
             y = (int)Random.Range(borderBottom.position.y, borderTop.position.y);
 
-            // DEBUG
-            x = 13;
-            y= -7;
-
             // Check if position is valid
             if(true) validPosition = true; // TODO: Define a condition. In snake itself or other food would be invalid.
         }
@@ -153,6 +146,28 @@ public class SnakeAgent : Agent {
                                                         new Vector2(x, y), 
                                                         Quaternion.identity); // default rotation
         newFood.tag = "Food";
+    }
+
+    public override void CollectObservations() {
+
+        int width = (int)Mathf.Abs(borderRight.position.x - borderLeft.position.x) - 1;
+        int height = (int)Mathf.Abs(borderTop.position.y - borderBottom.position.y) - 1;
+
+        int numObs = width * height;
+
+        int[] Obs = new int[numObs];
+
+        for(int i = 0; i < numObs; i++) Obs[i] = 0;
+
+        foreach(var tailElement in tail) {
+
+            int idx = ((int)tailElement.position.y + height/2 - 1) * width + (int)tailElement.position.x + width/2;
+            Obs[idx] = 1;
+
+        }
+
+        // Debug.Log(string.Join(" ", new List<int>(Obs).ConvertAll(i => i.ToString()).ToArray()));
+        
     }
 
     void OnTriggerEnter2D(Collider2D collider) {
@@ -173,7 +188,7 @@ public class SnakeAgent : Agent {
     }
 
     void Lost() {
-        SetReward(-2f);
+        AddReward(-2f);
         Done();
     }
 
