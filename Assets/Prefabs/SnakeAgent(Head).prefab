@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 931235040276315876}
   - component: {fileID: 931235040276315875}
   - component: {fileID: 153891019487269664}
-  - component: {fileID: 931235040276315881}
   - component: {fileID: 931235040276315882}
   m_Layer: 0
   m_Name: SnakeAgent(Head)
@@ -157,24 +156,6 @@ MonoBehaviour:
     type: 3}
   foodPrefab: {fileID: 5821761141009365490, guid: 2e49a4baf05090d4d972b75f04f9db02,
     type: 3}
-  maxFood: 10
---- !u!114 &931235040276315881
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 931235040276315874}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 282f342c2ab144bf38be65d4d0c4e07d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  camera: {fileID: 0}
-  sensorName: SnakeAgentSensor
-  width: 71
-  height: 71
-  grayscale: 1
 --- !u!114 &931235040276315882
 MonoBehaviour:
   m_ObjectHideFlags: 0
