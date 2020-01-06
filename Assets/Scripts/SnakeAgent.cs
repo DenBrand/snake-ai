@@ -154,35 +154,57 @@ public class SnakeAgent : Agent {
 
     public override void CollectObservations() {
 
-        int numObs = width * height;
-
-        int[] obs = new int[numObs];
-
-        for(int i = 0; i < numObs; i++) obs[i] = 0;
-
-        int idx = (int)(transform.position.y - borderBottom.position.y - 1) * width + (int)(transform.position.x - borderLeft.position.x) - 1;
-        // Debug.Log("player idx: " + idx);
-        obs[idx] = 1;
-
-        foreach(var tailElement in tail) {
-
-            idx = (int)(tailElement.position.y - borderBottom.position.y - 1) * width + (int)(tailElement.position.x - borderLeft.position.x) - 1;
-            // Debug.Log("tail idx: " + idx);
-            obs[idx] = 2;
-
+        // HOPEFULLY SMARTER IMPLEMENTATION:
+        // relative position of nearest food
+        Vector2 nearestFood = new Vector2(Mathf.Infinity, Mathf.Infinity);
+        foreach(var food in foods) {
+            if((food.transform.positon - transform.position).Abs < nearestFood.Abs) {
+                nearestFood = food.transform.position - transform.position;
+            }
         }
+        
+        // nearest direction to nearestFood
+        int nearestDirection = 0;   // 0: right
+                                    // 1: up
+                                    // 2: left
+                                    // 3: down
+        if(Vector2.Angle(nearestFood, Vector.right) <= 45) nearestDirection = 0
+        else if(Vector2.Angle(nearestFood, Vector.up) <= 45))
 
-        foreach(var foodElement in foods) {
+        AddVectorObs(nearestFood);
 
-            idx = (int)(foodElement.position.y - borderBottom.position.y - 1) * width + (int)(foodElement.position.x - borderLeft.position.x) - 1;
-            // Debug.Log("food idx: " + idx);
-            obs[idx] = 3;
+        // 
 
-        }
+        // IMPLEMENTATION WITH SIMULATED VISUAL OBSERVATIONS:
+        // int numObs = width * height;
 
-        foreach(int ob in obs) AddVectorObs(ob);
+        // int[] obs = new int[numObs];
 
-        // Debug.Log(string.Join(" ", new List<int>(Obs).ConvertAll(i => i.ToString()).ToArray()));
+        // for(int i = 0; i < numObs; i++) obs[i] = 0;
+
+        // int idx = (int)(transform.position.y - borderBottom.position.y - 1) * width + (int)(transform.position.x - borderLeft.position.x) - 1;
+        // // Debug.Log("player idx: " + idx);
+        // obs[idx] = 1;
+
+        // foreach(var tailElement in tail) {
+
+        //     idx = (int)(tailElement.position.y - borderBottom.position.y - 1) * width + (int)(tailElement.position.x - borderLeft.position.x) - 1;
+        //     // Debug.Log("tail idx: " + idx);
+        //     obs[idx] = 2;
+
+        // }
+
+        // foreach(var foodElement in foods) {
+
+        //     idx = (int)(foodElement.position.y - borderBottom.position.y - 1) * width + (int)(foodElement.position.x - borderLeft.position.x) - 1;
+        //     // Debug.Log("food idx: " + idx);
+        //     obs[idx] = 3;
+
+        // }
+
+        // foreach(int ob in obs) AddVectorObs(ob);
+
+        // // Debug.Log(string.Join(" ", new List<int>(Obs).ConvertAll(i => i.ToString()).ToArray()));
 
     }
 

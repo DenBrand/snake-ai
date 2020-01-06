@@ -447,11 +447,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_TrainingConfiguration:
-    width: 80
-    height: 80
+    width: 30
+    height: 30
     qualityLevel: 1
-    timeScale: 100
-    targetFrameRate: -1
+    timeScale: 20
+    targetFrameRate: 30
   m_InferenceConfiguration:
     width: 1280
     height: 720
@@ -885,7 +885,7 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Model
       value: 
-      objectReference: {fileID: 5022602860645237092, guid: 3be093a83c20d244faf870195d6ba650,
+      objectReference: {fileID: 5022602860645237092, guid: 34644cb629a2f7a789adc9813ddf9f0f,
         type: 3}
     - target: {fileID: 931235040276315882, guid: ab553e42f045dd749ba86cc576e87f82,
         type: 3}
