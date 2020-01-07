@@ -6,7 +6,7 @@ using MLAgents.Sensor;
 
 public class SnakeAgent : Agent {
     
-    public Vector2 dir = Vector2.right;
+    private Vector2 dir = Vector2.right;
     private List<Transform> tail = new List<Transform>();
     public GameObject food;
     public GameObject agentPrefab;
@@ -24,6 +24,10 @@ public class SnakeAgent : Agent {
     private Quaternion startRotation;
     int width;
     int height;
+    private bool foodIsRight;
+    private bool foodIsUp;
+    private bool foodIsLeft;
+    private bool foodIsDown;
 
     // Start is called before the first frame update
     void Start() {
@@ -38,7 +42,7 @@ public class SnakeAgent : Agent {
         height = (int)Mathf.Abs(borderTop.position.y - borderBottom.position.y) - 1;
 
         // Move the Snake every 200ms
-        InvokeRepeating("Move", 0f, tickRate);
+        InvokeRepeating("RequestDecision", 0f, tickRate);
     }
 
     void FixedUpdate() {
@@ -62,6 +66,7 @@ public class SnakeAgent : Agent {
     }
 
     public override void AgentReset() {
+
         tail.Clear();
 
         Destroy(food);
@@ -85,22 +90,34 @@ public class SnakeAgent : Agent {
         else if (vectorAction[1] == 0) dir = Vector2.left;
         else if (vectorAction[0] == 0) dir = Vector2.up;
 
-        // Move head into new direction (now there is a gap)
-        transform.Translate(dir);
-
-        action.x = 1f;
-        action.y = 1f;
-    }
-
-    void Move() {
         // Save current position (gap will be here)
         Vector2 gapPosition = transform.position;
 
-        if (ate) {
-            AddReward(10f);
+        // Move head into new direction (now there is a gap)
+        transform.Translate(dir);
+
+        // Reward, if direction is toward food
+        if((foodIsRight && dir == Vector2.right) ||
+            (foodIsUp && dir == Vector2.up) ||
+            (foodIsLeft && dir == Vector2.left) ||
+            (foodIsDown && dir == Vector2.down)) {
+
+            AddReward(1f);
+        }
+        if((foodIsRight && dir == Vector2.left) ||
+            (foodIsUp && dir == Vector2.down) ||
+            (foodIsLeft && dir == Vector2.right) ||
+            (foodIsDown && dir == Vector2.up)) {
+
+            AddReward(-0.5f);
+        }
+
+        // Evaluate consequences if decision
+        if(ate) {
+            AddReward(5f);
 
             // Load Prefab into the world
-            GameObject newTailElement = (GameObject)Instantiate( tailPrefab,
+            GameObject newTailElement = (GameObject)Instantiate(tailPrefab,
                                                     gapPosition,
                                                     Quaternion.identity);
             newTailElement.tag = "Tail";
@@ -112,18 +129,22 @@ public class SnakeAgent : Agent {
             ate = false;
         }
 
-        if (lost) {
-            Lost();
-        } else if (tail.Count > 0) {
+        if(lost) {
+            SetReward(-1f);
+            Done();
+        }
+        else if(tail.Count > 0) {
             // Move last Tail Element to where the Head was
             tail.Last().position = gapPosition;
 
             // Add to front of list, remove from the back
             tail.Insert(0, tail.Last());
-            tail.RemoveAt(tail.Count-1);
+            tail.RemoveAt(tail.Count - 1);
         }
 
-        RequestDecision();
+        // Reset action flags
+        action.x = 1f;
+        action.y = 1f;
     }
 
     void SpawnFood() {
@@ -171,11 +192,6 @@ public class SnakeAgent : Agent {
             if(transform.position + Vector3.down == tailElement.position)   bottom = true;
         }
 
-        //Debug.Log("right: " + right
-        //          + " top: " + top
-        //          + "\nleft: " + left
-        //          + " bottom: " + bottom);
-
         AddVectorObs(right);
         AddVectorObs(top);
         AddVectorObs(left);
@@ -185,32 +201,29 @@ public class SnakeAgent : Agent {
         Vector2 relativeFoodPosition = food.transform.position;
         // Debug.Log(relativeFoodPosition);
         
-        // nearest direction to nearestFood
+        // nearest direction to food
         if(Vector2.Angle(relativeFoodPosition, Vector2.right) <= 45f) {
             // Debug.Log("RIGHT");
-            AddVectorObs(true); // right
-            AddVectorObs(false);
-            AddVectorObs(false);
-            AddVectorObs(false);
+            foodIsRight = true;
+
         } else if(Vector2.Angle(relativeFoodPosition, Vector2.up) <= 45f) {
             // Debug.Log("UP");
-            AddVectorObs(false);
-            AddVectorObs(true); // up
-            AddVectorObs(false);
-            AddVectorObs(false);
+            foodIsUp = true;    
+
         } else if(Vector2.Angle(relativeFoodPosition, Vector2.left) <= 45f) {
             // Debug.Log("LEFT");
-            AddVectorObs(false);
-            AddVectorObs(false);
-            AddVectorObs(true); // left
-            AddVectorObs(false);
+            foodIsLeft = true;    
+
         } else {
             // Debug.Log("DOWN");
-            AddVectorObs(false);
-            AddVectorObs(false);
-            AddVectorObs(false);
-            AddVectorObs(true); // down
+            foodIsDown = true;
+
         }
+
+        AddVectorObs(foodIsRight);
+        AddVectorObs(foodIsUp);
+        AddVectorObs(foodIsLeft);
+        AddVectorObs(foodIsDown);
 
         // OBS DESIGN WITH SIMULATED VISUAL OBSERVATIONS:
         // int numObs = width * height;
@@ -260,11 +273,6 @@ public class SnakeAgent : Agent {
             // Reset flag
             lost = true;
         }
-    }
-
-    void Lost() {
-        AddReward(-1f);
-        Done();
     }
 
     public override float[] Heuristic() {

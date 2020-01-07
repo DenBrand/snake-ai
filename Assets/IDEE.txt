@@ -1,0 +1,2 @@
+Lernt der Agent nicht, auf das Target zu zu gehen, weil er stribt und dann flat einen Reward von -1 bekommt? Denkt er, dass diese -1
+nicht nur für das vor die Wand rennen sind, sondern auch, für das Sammeln des Essens?
