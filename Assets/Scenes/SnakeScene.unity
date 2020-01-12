@@ -450,7 +450,7 @@ MonoBehaviour:
     width: 30
     height: 30
     qualityLevel: 1
-    timeScale: 20
+    timeScale: 30
     targetFrameRate: 30
   m_InferenceConfiguration:
     width: 1280
@@ -799,7 +799,7 @@ PrefabInstance:
     - target: {fileID: 153891019487269664, guid: ab553e42f045dd749ba86cc576e87f82,
         type: 3}
       propertyPath: tickRate
-      value: 6
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 931235040276315881, guid: ab553e42f045dd749ba86cc576e87f82,
         type: 3}
@@ -890,7 +890,7 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Model
       value: 
-      objectReference: {fileID: 5022602860645237092, guid: 9db42617b91a22745965492ebaf697ec,
+      objectReference: {fileID: 5022602860645237092, guid: 54c741efdd086824abdcba9242b2f56a,
         type: 3}
     - target: {fileID: 931235040276315882, guid: ab553e42f045dd749ba86cc576e87f82,
         type: 3}
