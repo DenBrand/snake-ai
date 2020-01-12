@@ -2,11 +2,11 @@
 using MLAgents;
 using System.Collections.Generic;
 using System.Linq;
-using MLAgents.Sensor;
 
 public class SnakeAgent : Agent {
     
-    private Vector2 dir = Vector2.right;
+    private Vector3 dir = Vector3.right;
+    private Vector3 lastDir = Vector3.right;
     private List<Transform> tail = new List<Transform>();
     public GameObject food;
     public GameObject agentPrefab;
@@ -19,18 +19,20 @@ public class SnakeAgent : Agent {
     private Transform borderRight;
     bool ate = false;
     bool lost = false;
-    private Vector2 action = new Vector2(1f, 1f);
+    private float action = 1f;
     private Vector3 startPosition;
     private Quaternion startRotation;
     int width;
     int height;
     private bool foodIsRight;
-    private bool foodIsUp;
+    private bool foodIsFront;
     private bool foodIsLeft;
-    private bool foodIsDown;
+    private bool foodIsBehind;
+    private int score;
 
     // Start is called before the first frame update
     void Start() {
+        score = 0;
         startPosition = this.transform.position;
         startRotation = this.transform.rotation;
 
@@ -42,23 +44,12 @@ public class SnakeAgent : Agent {
         height = (int)Mathf.Abs(borderTop.position.y - borderBottom.position.y) - 1;
 
         // Move the Snake every 200ms
-        InvokeRepeating("RequestDecision", 0f, tickRate);
+        InvokeRepeating("RequestDecision", 0f, 1f/tickRate);
     }
 
     void FixedUpdate() {
-        if(Input.GetKey(KeyCode.UpArrow)) {
-            action.y = 0f;
-            action.x = 1f;
-        } else if(Input.GetKey(KeyCode.LeftArrow)) {
-            action.x = 0f;
-            action.y = 1f;
-        } else if(Input.GetKey(KeyCode.DownArrow)) {
-            action.y = 2f;
-            action.x = 1f;
-        } else if(Input.GetKey(KeyCode.RightArrow)) {
-            action.x = 2f;
-            action.y = 1f;
-        }
+        if(Input.GetKeyDown(KeyCode.LeftArrow) && !Input.GetKey(KeyCode.RightArrow)) action = 2f;
+        else if(Input.GetKeyDown(KeyCode.RightArrow) && !Input.GetKey(KeyCode.LeftArrow)) action = 0f;
     }
 
     public void RespawnNewAgent() {
@@ -84,36 +75,40 @@ public class SnakeAgent : Agent {
 
     public override void AgentAction(float[] vectorAction) {
 
-        // Move in a new Direction?
-        if (vectorAction[1] == 2) dir = Vector2.right;
-        else if (vectorAction[0] == 2) dir = Vector2.down;
-        else if (vectorAction[1] == 0) dir = Vector2.left;
-        else if (vectorAction[0] == 0) dir = Vector2.up;
+        // Move in a new direction?
+        if(Mathf.FloorToInt(vectorAction[0]) == 0) dir = Quaternion.Euler(0f, 0f, -90f) * dir; // turn right
+        else if(Mathf.FloorToInt(vectorAction[0]) == 2) dir = Quaternion.Euler(0f, 0f, 90f) * dir; // turn left
+
+        // Reward, if direction is towards food
+        if(((foodIsRight && Mathf.RoundToInt(Vector3.Angle(dir, Quaternion.Euler(0f, 0f, -90f) * lastDir)) == 0f) ||
+                (foodIsLeft && Mathf.RoundToInt(Vector3.Angle(dir, Quaternion.Euler(0f, 0f, 90f) * lastDir)) == 0f) ||
+                (foodIsFront && Mathf.RoundToInt(Vector3.Angle(dir, lastDir)) == 0f))) {
+
+            //Debug.Log("+1.0)");
+            AddReward(1f);
+        }
+
+        // Punish gently but strictly, if agent goes away from food
+        if(((foodIsRight && Mathf.RoundToInt(Vector3.Angle(dir, Quaternion.Euler(0f, 0f, 90f) * lastDir)) == 0f) ||
+                (foodIsLeft && Mathf.RoundToInt(Vector3.Angle(dir, Quaternion.Euler(0f, 0f, -90f) * lastDir)) == 0f) ||
+                (foodIsBehind && Mathf.RoundToInt(Vector3.Angle(dir, lastDir)) == 0f))) {
+
+            //Debug.Log("-0.5)");
+            AddReward(-0.5f);
+        }
 
         // Save current position (gap will be here)
         Vector2 gapPosition = transform.position;
 
         // Move head into new direction (now there is a gap)
         transform.Translate(dir);
+        lastDir = dir;
 
-        // Reward, if direction is toward food
-        if((foodIsRight && dir == Vector2.right) ||
-            (foodIsUp && dir == Vector2.up) ||
-            (foodIsLeft && dir == Vector2.left) ||
-            (foodIsDown && dir == Vector2.down)) {
-
-            AddReward(1f);
-        }
-        if((foodIsRight && dir == Vector2.left) ||
-            (foodIsUp && dir == Vector2.down) ||
-            (foodIsLeft && dir == Vector2.right) ||
-            (foodIsDown && dir == Vector2.up)) {
-
-            AddReward(-0.5f);
-        }
 
         // Evaluate consequences if decision
         if(ate) {
+            score++;
+            //Debug.Log("+5.0");
             AddReward(5f);
 
             // Load Prefab into the world
@@ -130,7 +125,9 @@ public class SnakeAgent : Agent {
         }
 
         if(lost) {
-            SetReward(-1f);
+            // Punish brutally, if agents dares to die
+            //Debug.Log("!-1.0");
+            AddReward(-5f);
             Done();
         }
         else if(tail.Count > 0) {
@@ -142,9 +139,8 @@ public class SnakeAgent : Agent {
             tail.RemoveAt(tail.Count - 1);
         }
 
-        // Reset action flags
-        action.x = 1f;
-        action.y = 1f;
+        // Reset action flag
+        action = 1f;
     }
 
     void SpawnFood() {
@@ -152,6 +148,7 @@ public class SnakeAgent : Agent {
         // Find valid food positon
         int x = 0, y = 0;
         bool validPosition = false;
+        int tries = 5;
         while (!validPosition) {
 
             // x position between left & right border
@@ -159,8 +156,17 @@ public class SnakeAgent : Agent {
             // y postition in top & bottom border
             y = (int)Random.Range(borderBottom.position.y, borderTop.position.y);
 
-            // Check if position is valid
-            if(true) validPosition = true; // TODO: Define a condition. In snake itself or other food would be invalid.
+            // Check if position is valid <=> no other entity on position
+            // Neither the snake head
+            if(Mathf.RoundToInt(transform.position.x) != x || Mathf.RoundToInt(transform.position.y) != y) {
+
+                // Nor a tail element
+                foreach(var tailElement in tail) {
+                    if(Mathf.RoundToInt(tailElement.position.x) != x || Mathf.RoundToInt(tailElement.position.y) != y) validPosition = true;
+                }
+            }
+            tries--;
+            if(tries == 0) validPosition = true;
         }
 
         // Instantiate the food at (x, y)
@@ -174,56 +180,74 @@ public class SnakeAgent : Agent {
 
         // adjacent obstacles
         bool right = false;
-        bool top = false;
+        bool front = false;
         bool left = false;
-        bool bottom = false;
 
-        // border next to snake head
-        if(Mathf.Abs(transform.position.x - borderRight.position.x) <= 1f)  right = true;
-        if(Mathf.Abs(transform.position.y - borderTop.position.y) <= 1f)    top = true;
-        if(Mathf.Abs(transform.position.x - borderLeft.position.x) <= 1f)   left = true;
-        if(Mathf.Abs(transform.position.y - borderBottom.position.y) <= 1f) bottom = true;
+        // check if a border is beside of snake (in respect to it's moving direction)
+        {
+            // right beside the snake
+            if(Mathf.RoundToInt((transform.position + Quaternion.Euler(0f, 0f, -90f) * lastDir).y) == Mathf.RoundToInt(borderTop.position.y) ||     // top
+               Mathf.RoundToInt((transform.position + Quaternion.Euler(0f, 0f, -90f) * lastDir).x) == Mathf.RoundToInt(borderLeft.position.x) ||    // left
+               Mathf.RoundToInt((transform.position + Quaternion.Euler(0f, 0f, -90f) * lastDir).y) == Mathf.RoundToInt(borderBottom.position.y) ||  // bottom
+               Mathf.RoundToInt((transform.position + Quaternion.Euler(0f, 0f, -90f) * lastDir).x) == Mathf.RoundToInt(borderRight.position.x))     // right
+                right = true; // one of the four borders is on the right of the snake head
 
-        // tail next to snake head
+            // left beside the snake
+            if(Mathf.RoundToInt((transform.position + Quaternion.Euler(0f, 0f, 90f) * lastDir).y) == Mathf.RoundToInt(borderTop.position.y) ||     // top
+               Mathf.RoundToInt((transform.position + Quaternion.Euler(0f, 0f, 90f) * lastDir).x) == Mathf.RoundToInt(borderLeft.position.x) ||    // left
+               Mathf.RoundToInt((transform.position + Quaternion.Euler(0f, 0f, 90f) * lastDir).y) == Mathf.RoundToInt(borderBottom.position.y) ||  // bottom
+               Mathf.RoundToInt((transform.position + Quaternion.Euler(0f, 0f, 90f) * lastDir).x) == Mathf.RoundToInt(borderRight.position.x))     // right
+                left = true; // one of the four borders is on the left of the snake head
+
+            // in front of the snake
+            if(Mathf.RoundToInt((transform.position + lastDir).y) == Mathf.RoundToInt(borderTop.position.y) ||     // top
+               Mathf.RoundToInt((transform.position + lastDir).x) == Mathf.RoundToInt(borderLeft.position.x) ||    // left
+               Mathf.RoundToInt((transform.position + lastDir).y) == Mathf.RoundToInt(borderBottom.position.y) ||  // bottom
+               Mathf.RoundToInt((transform.position + lastDir).x) == Mathf.RoundToInt(borderRight.position.x))     // right
+                front = true; // one of the four borders is in front of the snake head
+        }
+
+        // check if a tail element is beside of snake (in respect to it's moving direction)
         foreach(Transform tailElement in tail) {
-            if(transform.position + Vector3.right == tailElement.position)  right = true;
-            if(transform.position + Vector3.up == tailElement.position)     top = true;
-            if(transform.position + Vector3.left == tailElement.position)   left = true;
-            if(transform.position + Vector3.down == tailElement.position)   bottom = true;
+            // right beside the snake
+            if(Mathf.RoundToInt((transform.position + Quaternion.Euler(0f, 0f, -90f) * lastDir - tailElement.position).x) == 0f &&
+               Mathf.RoundToInt((transform.position + Quaternion.Euler(0f, 0f, -90f) * lastDir - tailElement.position).y) == 0f)
+                right = true;
+
+            // left beside the snake
+            if(Mathf.RoundToInt((transform.position + Quaternion.Euler(0f, 0f, 90f) * lastDir - tailElement.position).x) == 0f &&
+               Mathf.RoundToInt((transform.position + Quaternion.Euler(0f, 0f, 90f) * lastDir - tailElement.position).y) == 0f)
+                left = true;
+
+            // in front of the snake
+            if(Mathf.RoundToInt((transform.position + lastDir - tailElement.position).x) == 0f &&
+               Mathf.RoundToInt((transform.position + lastDir - tailElement.position).y) == 0f)
+                front = true;
         }
 
         AddVectorObs(right);
-        AddVectorObs(top);
+        AddVectorObs(front);
         AddVectorObs(left);
-        AddVectorObs(bottom);
 
         // relative position of food
-        Vector2 relativeFoodPosition = food.transform.position;
-        // Debug.Log(relativeFoodPosition);
-        
-        // nearest direction to food
-        if(Vector2.Angle(relativeFoodPosition, Vector2.right) <= 45f) {
-            // Debug.Log("RIGHT");
-            foodIsRight = true;
+        Vector2 relativeFoodPosition = food.transform.position - transform.position;
 
-        } else if(Vector2.Angle(relativeFoodPosition, Vector2.up) <= 45f) {
-            // Debug.Log("UP");
-            foodIsUp = true;    
+        // find nearest direction to food
+        foodIsRight = false;
+        foodIsFront = false;
+        foodIsLeft = false;
+        foodIsBehind = false;
 
-        } else if(Vector2.Angle(relativeFoodPosition, Vector2.left) <= 45f) {
-            // Debug.Log("LEFT");
-            foodIsLeft = true;    
+        if      (Vector2.Angle(relativeFoodPosition, lastDir) <= 45f)                                   foodIsFront = true;
+        else if (Vector2.Angle(relativeFoodPosition, Quaternion.Euler(0f, 0f, -90f) * lastDir) <= 45f)  foodIsRight = true;    
+        else if (Vector2.Angle(relativeFoodPosition, Quaternion.Euler(0f, 0f, 90f) * lastDir) <= 45f)   foodIsLeft = true;    
+        else                                                                                            foodIsBehind = true;
 
-        } else {
-            // Debug.Log("DOWN");
-            foodIsDown = true;
-
-        }
-
+        // reach in Obs
         AddVectorObs(foodIsRight);
-        AddVectorObs(foodIsUp);
+        AddVectorObs(foodIsFront);
         AddVectorObs(foodIsLeft);
-        AddVectorObs(foodIsDown);
+        AddVectorObs(foodIsBehind);
 
         // OBS DESIGN WITH SIMULATED VISUAL OBSERVATIONS:
         // int numObs = width * height;
@@ -276,10 +300,8 @@ public class SnakeAgent : Agent {
     }
 
     public override float[] Heuristic() {
-
         var act = new float[2];
-        act[0] = action.y;
-        act[1] = action.x;
+        act[0] = action;
 
         return act;
     }
